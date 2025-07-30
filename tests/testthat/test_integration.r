@@ -15,7 +15,7 @@ test_that("functions work together in pipeline", {
     set.seed(42)
     messy_data <- clean_data |>
         toddler_missing(prop = 0.1, seed = 42) |>
-        toddler_inconsistent(cols = "completed", seed = 42) |>
+        toddler_inconsistent(cols = "completed", prop = 0.2, seed = 42) |>
         toddler_whitespace(cols = "age_group", prop = 0.2, seed = 42) |>
         toddler_types(cols = "test_score", prop = 0.05, seed = 42) |>
         toddler_duplicate(prop = 0.1, seed = 42) |>
@@ -35,7 +35,7 @@ test_that("functions work together in pipeline", {
     set.seed(42)
     messy_data2 <- clean_data |>
         toddler_missing(prop = 0.1, seed = 42) |>
-        toddler_inconsistent(cols = "completed", seed = 42) |>
+        toddler_inconsistent(cols = "completed", prop = 0.2, seed = 42) |>
         toddler_whitespace(cols = "age_group", prop = 0.2, seed = 42) |>
         toddler_types(cols = "test_score", prop = 0.05, seed = 42) |>
         toddler_duplicate(prop = 0.1, seed = 42) |>
@@ -57,7 +57,7 @@ test_that("pipeline with splitting works", {
     set.seed(123)
     split_messy <- test_data |>
         toddler_missing(prop = 0.1, seed = 123) |>
-        toddler_inconsistent(cols = "category", seed = 123) |>
+        toddler_inconsistent(cols = "category", prop = 0.3, seed = 123) |>
         toddler_unjoin(by_rows = "id", prop = 0.7, seed = 123)
 
     expect_type(split_messy, "list")
@@ -108,7 +108,7 @@ test_that("functions handle data frame with all data types", {
     expect_s3_class(toddler_duplicate(complex_data), "data.frame")
     expect_s3_class(toddler_names(complex_data), "data.frame")
     expect_s3_class(toddler_whitespace(complex_data), "data.frame")
-    expect_s3_class(toddler_inconsistent(complex_data), "data.frame")
+    expect_s3_class(toddler_inconsistent(complex_data, prop = 0.2), "data.frame")
     expect_s3_class(toddler_types(complex_data), "data.frame")
     expect_s3_class(toddler_units(complex_data), "data.frame")
     expect_s3_class(toddler_extra(complex_data), "data.frame")

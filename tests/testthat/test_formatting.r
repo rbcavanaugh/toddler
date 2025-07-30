@@ -34,6 +34,13 @@ test_that("toddler_names messes up column names appropriately", {
     lower_names <- toddler_names(test_data, style = "lower")
     expect_true(all(names(lower_names) == tolower(original_names)))
 
+    # Test camelCase input gets properly split in title case
+    camel_data <- data.frame(firstName = "Alice", lastName = "Smith", ageYears = 25)
+    camel_title <- toddler_names(camel_data, style = "title")
+    expect_true("First Name" %in% names(camel_title))
+    expect_true("Last Name" %in% names(camel_title))
+    expect_true("Age Years" %in% names(camel_title))
+
     # Test data integrity
     expect_equal(mixed_names[, 1], test_data[, 1])  # Data should be unchanged
 })
@@ -94,7 +101,7 @@ test_that("toddler_inconsistent creates inconsistencies", {
     expect_equal(ncol(inconsistent_data), ncol(test_data))
 
     # Test specific columns
-    answer_only <- toddler_inconsistent(test_data, cols = "answer", seed = 123)
+    answer_only <- toddler_inconsistent(test_data, cols = "answer", prop = 0.3, seed = 123)
 
     # Test known transformations
     yes_variations <- c("YES", "y", "True", "yes")
@@ -108,7 +115,7 @@ test_that("toddler_inconsistent creates inconsistencies", {
         answer = rep("yes", 100),
         stringsAsFactors = FALSE
     )
-    inconsistent_large <- toddler_inconsistent(large_data, seed = 123)
+    inconsistent_large <- toddler_inconsistent(large_data, prop = 0.3, seed = 123)
     unique_answers <- unique(inconsistent_large$answer)
 
     # Should have some variety (not all exactly "yes")
@@ -116,14 +123,14 @@ test_that("toddler_inconsistent creates inconsistencies", {
 
     # Test with non-character data (should be ignored)
     mixed_data <- data.frame(x = 1:5, y = c("yes", "no", "yes", "no", "yes"))
-    inconsistent_mixed <- toddler_inconsistent(mixed_data)
+    inconsistent_mixed <- toddler_inconsistent(mixed_data, prop = 0.3)
     expect_equal(inconsistent_mixed$x, mixed_data$x)  # Numeric unchanged
 
     # Test reproducibility
     set.seed(123)
-    inc1 <- toddler_inconsistent(test_data, seed = 123)
+    inc1 <- toddler_inconsistent(test_data, prop = 0.3, seed = 123)
     set.seed(123)
-    inc2 <- toddler_inconsistent(test_data, seed = 123)
+    inc2 <- toddler_inconsistent(test_data, prop = 0.3, seed = 123)
     expect_equal(inc1, inc2)
 })
 
@@ -142,12 +149,12 @@ test_that("formatting functions handle edge cases", {
     spaced_numeric <- toddler_whitespace(numeric_only)
     expect_equal(spaced_numeric, numeric_only)  # Should be unchanged
 
-    inconsistent_numeric <- toddler_inconsistent(numeric_only)
+    inconsistent_numeric <- toddler_inconsistent(numeric_only, prop = 0.3)
     expect_equal(inconsistent_numeric, numeric_only)  # Should be unchanged
 
     # Test with missing values
     with_na <- data.frame(x = c("yes", NA, "no"), y = c(1, 2, 3))
-    expect_s3_class(toddler_inconsistent(with_na), "data.frame")
+    expect_s3_class(toddler_inconsistent(with_na, prop = 0.3), "data.frame")
     expect_s3_class(toddler_whitespace(with_na), "data.frame")
 
     # Test with zero proportion

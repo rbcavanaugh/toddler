@@ -80,32 +80,18 @@ test_that("toddler_extra adds bonus content", {
         age = c(25, 30)
     )
 
-    # Test adding all extras
+    # Test adding empty rows only (simplified function)
     set.seed(123)
-    extra_data <- toddler_extra(test_data, add_totals = TRUE,
-                                add_empty = TRUE, add_header = TRUE, seed = 123)
+    extra_data <- toddler_extra(test_data, add_empty = TRUE, seed = 123)
 
     expect_s3_class(extra_data, "data.frame")
     expect_gt(nrow(extra_data), nrow(test_data))
 
-    # Check for header row
-    expect_true(any(grepl("Data Report", extra_data[, 1])))
-
-    # Check for totals row
-    expect_true(any(grepl("TOTAL", extra_data[, 1])))
-
-    # Test individual options
-    header_only <- toddler_extra(test_data, add_totals = FALSE,
-                                 add_empty = FALSE, add_header = TRUE)
-    expect_equal(nrow(header_only), nrow(test_data) + 1)
-
-    totals_only <- toddler_extra(test_data, add_totals = TRUE,
-                                 add_empty = FALSE, add_header = FALSE)
-    expect_equal(nrow(totals_only), nrow(test_data) + 1)
+    # Should have some NA rows
+    expect_true(any(is.na(extra_data[, 1])))
 
     # Test with no additions
-    no_extras <- toddler_extra(test_data, add_totals = FALSE,
-                               add_empty = FALSE, add_header = FALSE)
+    no_extras <- toddler_extra(test_data, add_empty = FALSE)
     expect_equal(no_extras, test_data)
 })
 

@@ -1,6 +1,19 @@
 # Toddler Package: Base R functions to mess up clean data for teaching
 # All functions work with pipe |> and have minimal dependencies
 
+#' Helper function to split camelCase into words (internal)
+#' @param x A character string that might be camelCase
+#' @return A string with spaces between words
+#' @keywords internal
+.split_camel_case <- function(x) {
+    # Insert space before uppercase letters (except at start)
+    # This handles camelCase like "firstName" -> "first Name"
+    result <- gsub("([a-z])([A-Z])", "\\1 \\2", x)
+    # Also handle acronyms like "XMLHttpRequest" -> "XML Http Request"
+    result <- gsub("([A-Z])([A-Z][a-z])", "\\1 \\2", result)
+    return(result)
+}
+
 #' Helper function for title case (internal)
 #' @param x A character string
 #' @return A title case string
@@ -104,11 +117,11 @@ toddler_missing <- function(data, cols = names(data), prop = 0.1, seed = NULL) {
 
 #' Mess up column names like a toddler with a label maker
 #'
-#' Takes your sensible snake_case column names and turns them into a
-#' typographic disaster that looks like a toddler got hold of the Shift key.
+#' Takes your sensible naming conventions (snake_case, camelCase, etc.) and turns
+#' them into a typographic disaster that looks like a toddler got hold of the Shift key.
 #'
 #' @param data A data frame with perfectly reasonable column names
-#' @param style Type of messiness: "mixed" (random chaos), "title" (Title Case),
+#' @param style Type of messiness: "mixed" (random chaos), "title" (Title Case With Spaces),
 #'   "upper" (SHOUTY), or "lower" (whisper quiet)
 #' @param seed Random seed for reproducible mess
 #'
@@ -116,9 +129,9 @@ toddler_missing <- function(data, cols = names(data), prop = 0.1, seed = NULL) {
 #' @export
 #'
 #' @examples
-#' df <- data.frame(first_name = "Alice", last_name = "Smith", age_years = 25)
+#' df <- data.frame(first_name = "Alice", lastName = "Smith", age_years = 25)
 #' toddler_names(df, style = "mixed")  # Maximum chaos
-#' toddler_names(df, style = "title")  # "Professional" looking chaos
+#' toddler_names(df, style = "title")  # "First Name", "Last Name", "Age Years"
 toddler_names <- function(data, style = "mixed", seed = NULL) {
 
     if (!is.null(seed)) set.seed(seed)
@@ -130,22 +143,22 @@ toddler_names <- function(data, style = "mixed", seed = NULL) {
         name <- new_names[i]
 
         if (style == "mixed") {
-            choice <- sample(c("title", "upper", "lower", "unchanged"), 1,
-                             prob = c(0.4, 0.3, 0.2, 0.1))
+            # Sample with replacement from all options for each name
+            choice <- sample(c("title", "upper", "lower"), 1)
         } else {
             choice <- style
         }
 
         new_names[i] <- switch(choice,
                                "title" = {
-                                   # Replace underscores with spaces, then title case
-                                   name_with_spaces <- gsub("_", " ", name)
+                                   # First split camelCase, then replace dots/underscores with spaces, then title case
+                                   camel_split <- .split_camel_case(name)
+                                   name_with_spaces <- gsub("[._]", " ", camel_split)
                                    .to_title_case(name_with_spaces)
                                },
                                "upper" = toupper(name),
                                "lower" = tolower(name),
-                               "unchanged" = name,
-                               name
+                               name  # fallback
         )
     }
 
@@ -266,6 +279,7 @@ toddler_duplicate <- function(data, prop = 0.05, seed = NULL) {
 #' @param data A data frame with boringly consistent categories
 #' @param cols Column names (character vector) to make inconsistent.
 #'   If NULL, targets all character columns because chaos should be democratic.
+#' @param prop Proportion of values to make inconsistent (0-1). Default 0.2.
 #' @param seed Random seed for reproducible linguistic disasters
 #'
 #' @return A data frame where "Yes" might also be "YES", "y", or "True"
@@ -276,8 +290,8 @@ toddler_duplicate <- function(data, prop = 0.05, seed = NULL) {
 #'   answer = rep(c("yes", "no"), 5),
 #'   gender = rep(c("male", "female"), 5)
 #' )
-#' toddler_inconsistent(df)
-toddler_inconsistent <- function(data, cols = NULL, seed = NULL) {
+#' toddler_inconsistent(df, prop = 0.3)
+toddler_inconsistent <- function(data, cols = NULL, prop = 0.2, seed = NULL) {
 
     if (!is.null(seed)) set.seed(seed)
 
@@ -294,8 +308,8 @@ toddler_inconsistent <- function(data, cols = NULL, seed = NULL) {
     for (col_name in cols) {
         if (col_name %in% names(result)) {
             x <- result[[col_name]]
-            # Apply inconsistency to 20% of values
-            change_indices <- runif(length(x)) < 0.2
+            # Apply inconsistency to specified proportion of values
+            change_indices <- runif(length(x)) < prop
 
             for (i in which(change_indices)) {
                 val <- tolower(x[i])
@@ -308,14 +322,8 @@ toddler_inconsistent <- function(data, cols = NULL, seed = NULL) {
                 } else if (val == "female") {
                     x[i] <- sample(c("Female", "FEMALE", "F", "female"), 1)
                 } else {
-                    # Random case change
-                    rand_choice <- sample(c("upper", "lower", "title", "unchanged"), 1)
-                    x[i] <- switch(rand_choice,
-                                   "upper" = toupper(x[i]),
-                                   "lower" = tolower(x[i]),
-                                   "title" = .to_title_case(x[i]),
-                                   "unchanged" = x[i]
-                    )
+                    # Random case change for other values
+                    x[i] <- sample(c(toupper(x[i]), tolower(x[i]), .to_title_case(x[i])), 1)
                 }
             }
             result[[col_name]] <- x
@@ -481,28 +489,26 @@ toddler_units <- function(data, cols = NULL,
 #' Add extra rows like a toddler's "helpful" additions
 #'
 #' Because toddlers love to add their own special touches, this function
-#' adds bonus rows that make about as much sense as a toddler's art project.
+#' adds empty rows that make about as much sense as a toddler's art project.
+#' (Note: Excel-style headers and totals removed to maintain R's rectangular data structure)
 #'
 #' @param data A data frame that's about to get some uninvited additions
-#' @param add_totals Add a totals row (because someone needs to count everything)
 #' @param add_empty Add empty rows (strategic breathing room)
-#' @param add_header Add extra header rows (more titles = more important, right?)
 #' @param seed Random seed for reproducible "improvements"
 #'
-#' @return A data frame with bonus content that nobody asked for
+#' @return A data frame with bonus empty rows that nobody asked for
 #' @export
 #'
 #' @examples
 #' df <- data.frame(name = c("Alice", "Bob"), score = c(85, 92))
-#' toddler_extra(df, add_totals = TRUE, add_empty = TRUE)
-toddler_extra <- function(data, add_totals = TRUE, add_empty = TRUE,
-                          add_header = TRUE, seed = NULL) {
+#' toddler_extra(df, add_empty = TRUE)
+toddler_extra <- function(data, add_empty = TRUE, seed = NULL) {
 
     if (!is.null(seed)) set.seed(seed)
 
     result <- data
 
-    # Add empty rows randomly
+    # Add empty rows randomly (the only sensible option for R's rectangular data)
     if (add_empty && nrow(result) > 0) {
         n_empty <- sample(1:3, 1)
         # Don't try to sample more positions than rows available
@@ -524,41 +530,6 @@ toddler_extra <- function(data, add_totals = TRUE, add_empty = TRUE,
                 }
             }
         }
-    }
-
-    # Add totals row
-    if (add_totals && nrow(result) > 0 && ncol(result) > 0) {
-        totals_row <- result[1, ]
-        # Convert factor columns to character to avoid factor level issues
-        for (i in seq_along(totals_row)) {
-            if (is.factor(totals_row[[i]])) {
-                totals_row[[i]] <- as.character(totals_row[[i]])
-            }
-        }
-        totals_row[1, 1] <- "TOTAL"
-
-        # Set numeric columns to sum
-        numeric_cols <- names(result)[sapply(result, is.numeric)]
-        for (col in numeric_cols) {
-            totals_row[[col]] <- paste0("Total: ", sum(result[[col]], na.rm = TRUE))
-        }
-        result <- rbind(result, totals_row)
-    }
-
-    # Add header row
-    if (add_header && ncol(result) > 0) {
-        header_row <- result[1, ]
-        # Convert factor columns to character to avoid factor level issues
-        for (i in seq_along(header_row)) {
-            if (is.factor(header_row[[i]])) {
-                header_row[[i]] <- as.character(header_row[[i]])
-            }
-        }
-        header_row[1, ] <- "Data Report - Generated 2024"
-        if (ncol(header_row) > 1) {
-            header_row[1, 2:ncol(header_row)] <- ""
-        }
-        result <- rbind(header_row, result)
     }
 
     result

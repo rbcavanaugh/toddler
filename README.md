@@ -30,7 +30,7 @@ devtools::install_github("yourusername/toddler")
 ### 🏗️ Structural Vandalism
 - `toddler_wide()` - Spreads your tidy data wide like toys across a living room
 - `toddler_unjoin()` - Splits data into pieces because why keep things together?
-- `toddler_extra()` - Adds bonus rows nobody asked for
+- `toddler_extra()` - Adds random empty rows (because R doesn't like Excel-style headers in data frames)
 
 ### 🎨 Cosmetic Chaos  
 - `toddler_names()` - Mixes Up Column Names Like This Or LIKE THIS or like this
@@ -61,12 +61,12 @@ clean_data <- data.frame(
 # Apply the full toddler treatment
 messy_data <- clean_data |>
   toddler_missing(prop = 0.1) |>
-  toddler_inconsistent(cols = "completed") |>
+  toddler_inconsistent(cols = "completed", prop = 0.2) |>
   toddler_whitespace(cols = "age_group") |>
   toddler_types(cols = "test_score", prop = 0.05) |>
   toddler_duplicate(prop = 0.2) |>
   toddler_names(style = "mixed") |>
-  toddler_extra()
+  toddler_extra(add_empty = TRUE)
 
 # Congratulations! Your data now looks like it came from the real world
 ```
@@ -75,9 +75,9 @@ messy_data <- clean_data |>
 
 ### The "Excel Export" Special
 ```r
-# Simulate what happens when someone exports from Excel
+# Simulate what happens when someone exports from Excel (minus the headers)
 excel_nightmare <- clean_data |>
-  toddler_extra(add_header = TRUE, add_totals = TRUE) |>
+  toddler_extra(add_empty = TRUE) |>
   toddler_names(style = "title") |>
   toddler_whitespace(prop = 0.3) |>
   toddler_types(prop = 0.1)
@@ -87,7 +87,7 @@ excel_nightmare <- clean_data |>
 ```r
 # Typical survey response chaos
 survey_mess <- clean_data |>
-  toddler_inconsistent(cols = "completed") |>
+  toddler_inconsistent(cols = "completed", prop = 0.3) |>
   toddler_missing(cols = c("age_group", "test_score"), prop = c(0.05, 0.15)) |>
   toddler_whitespace(cols = "age_group", prop = 0.2)
 ```
@@ -101,6 +101,8 @@ split_data <- clean_data |>
 
 # Now you have two datasets with slightly different problems!
 ```
+
+
 
 ## Contributing
 
