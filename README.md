@@ -2,8 +2,10 @@
 
 > *"Why is all this data so clean? Let me help!"* - Every toddler, probably
 
-[![R-CMD-check](https://github.com/yourusername/toddler/workflows/R-CMD-check/badge.svg)](https://github.com/yourusername/toddler/actions)
-
+<!-- badges: start -->
+ [![R-CMD-check](https://github.com/rbcavanaugh/toddler/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/rbcavanaugh/toddler/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+ 
 ## Overview
 
 The `toddler` package contains a collection of functions that systematically mess up clean data in all the wonderful ways that real-world data comes pre-messed-up. Think of it as Murphy's Law in package form, or a toddler with access to your pristine dataset.
@@ -100,29 +102,7 @@ split_data <- clean_data |>
 # Now you have two datasets with slightly different problems!
 ```
 
-## Educational Philosophy
-
-This package embraces the educational principle that students learn data cleaning best when they encounter realistic problems. Rather than working with artificially clean datasets, `toddler` helps create the beautiful chaos that mirrors real-world data challenges.
-
-Each function is designed to introduce specific, common data quality issues:
-- **Encoding problems** (mixed case, whitespace)
-- **Structural issues** (wide format, split tables)  
-- **Type confusion** (mixed data types)
-- **Completeness problems** (missing values, duplicates)
-- **Consistency issues** (multiple representations of the same value)
-
 ## Contributing
 
-Found a new way that data can be wonderfully broken? Contributions are welcome! Please read our contributing guidelines and remember: the goal is educational chaos, not malicious destruction.
+Found a new way that data can be wonderfully broken? Contributions are welcome! 
 
-## License
-
-MIT License - Because even chaos should be free and open source.
-
-## Acknowledgments
-
-- Inspired by every real dataset that ever existed
-- Dedicated to all the data scientists who have muttered "Why is it like this?" 
-- Special thanks to toddlers everywhere for showing us that creativity knows no bounds
-
----
