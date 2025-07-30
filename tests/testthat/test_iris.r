@@ -12,6 +12,21 @@ test_that("toddler functions work on iris dataset", {
     expect_s3_class(toddler_units(iris, prop = 0.1), "data.frame")
     expect_s3_class(toddler_extra(iris), "data.frame")
 
+    # Test new toddler_missing functionality on iris
+    iris_with_na <- iris
+    iris_with_na$Sepal.Length[c(1, 5, 10)] <- NA
+    iris_with_na$Species[c(2, 7)] <- NA
+
+    # Test modify_missing on iris
+    modified_iris <- toddler_missing(iris_with_na, add_missing = FALSE, modify_missing = TRUE)
+    expect_equal(sum(is.na(modified_iris)), 0)  # No more NAs
+
+    # Test extra_tricky on iris (numeric columns stay numeric)
+    tricky_iris <- toddler_missing(iris_with_na, add_missing = FALSE,
+                                   modify_missing = TRUE, extra_tricky = TRUE)
+    expect_true(is.numeric(tricky_iris$Sepal.Length))  # Should stay numeric with -999
+    expect_true(-999 %in% tricky_iris$Sepal.Length)
+
     # Test that data integrity is maintained
     missing_iris <- toddler_missing(iris, prop = 0.2)
     expect_equal(ncol(missing_iris), ncol(iris))
@@ -92,7 +107,7 @@ test_that("complete iris pipeline works", {
         toddler_types(cols = c("Sepal.Length", "Petal.Length"), prop = 0.1, seed = 42) |>
         toddler_duplicate(prop = 0.1, seed = 42) |>
         toddler_names(style = "title", seed = 42) |>
-        toddler_extra(add_empty = TRUE, seed = 42)
+        toddler_extra(add_random = TRUE, seed = 42)
 
     expect_s3_class(messy_iris, "data.frame")
     expect_gt(nrow(messy_iris), nrow(iris))  # Should have duplicates and empty rows
@@ -120,7 +135,7 @@ test_that("complete iris pipeline works", {
         toddler_types(cols = c("Sepal.Length", "Petal.Length"), prop = 0.1, seed = 42) |>
         toddler_duplicate(prop = 0.1, seed = 42) |>
         toddler_names(style = "title", seed = 42) |>
-        toddler_extra(add_empty = TRUE, seed = 42)
+        toddler_extra(add_random = TRUE, seed = 42)
 
     expect_equal(messy_iris, messy_iris2)
 })

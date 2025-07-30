@@ -2,31 +2,75 @@
 % Please edit documentation in R/toddler_functions.R
 \name{toddler_missing}
 \alias{toddler_missing}
-\title{Add missing values like a toddler hiding their vegetables}
+\title{Create and replace missing values with messy representations}
 \usage{
-toddler_missing(data, cols = names(data), prop = 0.1, seed = NULL)
+toddler_missing(
+  data,
+  cols = names(data),
+  add_missing = TRUE,
+  modify_missing = FALSE,
+  prop = 0.05,
+  replacement = c("n/a", "na", "NA", "N/A", "-999", "999", "missing"),
+  random = TRUE,
+  extra_tricky = FALSE,
+  seed = NULL
+)
 }
 \arguments{
-\item{data}{A data frame}
+\item{data}{A data frame to mess up with missing values}
 
 \item{cols}{Column names (character vector) or column indices to target.
-Default is all columns because toddlers are indiscriminate in their chaos.}
+Default is all columns because missing data chaos should be democratic.}
 
-\item{prop}{Proportion of missing values (0-1), single value or vector.
-Can be different for each column, just like toddler preferences.}
+\item{add_missing}{Logical. If TRUE, adds missing values to data (step A).
+If FALSE, skips adding new missing values. Default TRUE.}
 
-\item{seed}{Random seed for reproducibility (because sometimes you need
-the same mess twice)}
+\item{modify_missing}{Logical. If TRUE, converts existing NA values to messy
+representations (step B). If FALSE, leaves existing NAs as proper NAs. Default FALSE.}
+
+\item{prop}{Numeric vector of proportions (0-1) of missing data to add to each column.
+Can be single value (applied to all columns) or vector matching length of cols.
+Set to 0 to skip adding missing data and only mess up existing NAs. Default 0.05 (5\%).}
+
+\item{replacement}{Character vector of messy missing values to use, or a single
+specific value. Default uses common messy representations.}
+
+\item{random}{Logical. If TRUE, randomly selects from replacement values.
+If FALSE, uses the first replacement value for all NAs. Default TRUE.}
+
+\item{extra_tricky}{Logical. If TRUE, replaces NAs in numeric columns with
+-999 and keeps columns numeric, regardless of other settings. Default FALSE.}
+
+\item{seed}{Random seed for reproducible mess}
 }
 \value{
-A data frame with strategically placed NAs
+A data frame where missing values have been added and all NAs replaced
+with messy alternatives. Warns if fewer than 3 total missing values exist.
 }
 \description{
-Introduces NAs into your data with the randomness of a toddler deciding
-what they will and won't eat today.
+Takes clean data and systematically ruins it for educational purposes by first
+adding missing values, then replacing all NA values with the chaotic mess
+of missing value representations found in real-world data, like a toddler
+who thinks there are many ways to say "I don't know."
 }
 \examples{
+# Add missing data with default 5\% proportion
 df <- data.frame(x = 1:10, y = letters[1:10])
-toddler_missing(df, prop = 0.2)  # 20\% chaos
-toddler_missing(df, cols = "x", prop = 0.5)  # Target specific columns
+toddler_missing(df)
+
+# Add missing data and mess it up (both steps)
+toddler_missing(df, add_missing = TRUE, modify_missing = TRUE, prop = 0.2)
+
+# Only mess up existing NAs without adding new ones
+df_with_nas <- data.frame(x = c(1, 2, NA, 4), y = c("a", NA, "c", NA))
+toddler_missing(df_with_nas, add_missing = FALSE, modify_missing = TRUE)
+
+# Only add missing data, keep as proper NAs
+toddler_missing(df, add_missing = TRUE, modify_missing = FALSE, prop = 0.2)
+
+# Add different proportions per column and mess up
+toddler_missing(df, add_missing = TRUE, prop = c(0.1, 0.3))
+
+# Keep numeric columns as numeric with -999
+toddler_missing(df_with_nas, extra_tricky = TRUE)
 }

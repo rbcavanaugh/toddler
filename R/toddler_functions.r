@@ -62,29 +62,67 @@ toddler_wide <- function(data, names_from, values_from, id_cols = NULL) {
             sep = "_")
 }
 
-#' Add missing values like a toddler hiding their vegetables
+#' Create and replace missing values with messy representations
 #'
-#' Introduces NAs into your data with the randomness of a toddler deciding
-#' what they will and won't eat today.
+#' Takes clean data and systematically ruins it for educational purposes by first
+#' adding missing values, then replacing all NA values with the chaotic mess
+#' of missing value representations found in real-world data, like a toddler
+#' who thinks there are many ways to say "I don't know."
 #'
-#' @param data A data frame
+#' @param data A data frame to mess up with missing values
 #' @param cols Column names (character vector) or column indices to target.
-#'   Default is all columns because toddlers are indiscriminate in their chaos.
-#' @param prop Proportion of missing values (0-1), single value or vector.
-#'   Can be different for each column, just like toddler preferences.
-#' @param seed Random seed for reproducibility (because sometimes you need
-#'   the same mess twice)
+#'   Default is all columns because missing data chaos should be democratic.
+#' @param add_missing Logical. If TRUE, adds missing values to data (step A).
+#'   If FALSE, skips adding new missing values. Default TRUE.
+#' @param modify_missing Logical. If TRUE, converts existing NA values to messy
+#'   representations (step B). If FALSE, leaves existing NAs as proper NAs. Default FALSE.
+#' @param prop Numeric vector of proportions (0-1) of missing data to add to each column.
+#'   Can be single value (applied to all columns) or vector matching length of cols.
+#'   Set to 0 to skip adding missing data and only mess up existing NAs. Default 0.05 (5%).
+#' @param replacement Character vector of messy missing values to use, or a single
+#'   specific value. Default uses common messy representations.
+#' @param random Logical. If TRUE, randomly selects from replacement values.
+#'   If FALSE, uses the first replacement value for all NAs. Default TRUE.
+#' @param extra_tricky Logical. If TRUE, replaces NAs in numeric columns with
+#'   -999 and keeps columns numeric, regardless of other settings. Default FALSE.
+#' @param seed Random seed for reproducible mess
 #'
-#' @return A data frame with strategically placed NAs
+#' @return A data frame where missing values have been added and all NAs replaced
+#'   with messy alternatives. Warns if fewer than 3 total missing values exist.
 #' @export
 #'
 #' @examples
+#' # Add missing data with default 5% proportion
 #' df <- data.frame(x = 1:10, y = letters[1:10])
-#' toddler_missing(df, prop = 0.2)  # 20% chaos
-#' toddler_missing(df, cols = "x", prop = 0.5)  # Target specific columns
-toddler_missing <- function(data, cols = names(data), prop = 0.1, seed = NULL) {
+#' toddler_missing(df)
+#'
+#' # Add missing data and mess it up (both steps)
+#' toddler_missing(df, add_missing = TRUE, modify_missing = TRUE, prop = 0.2)
+#'
+#' # Only mess up existing NAs without adding new ones
+#' df_with_nas <- data.frame(x = c(1, 2, NA, 4), y = c("a", NA, "c", NA))
+#' toddler_missing(df_with_nas, add_missing = FALSE, modify_missing = TRUE)
+#'
+#' # Only add missing data, keep as proper NAs
+#' toddler_missing(df, add_missing = TRUE, modify_missing = FALSE, prop = 0.2)
+#'
+#' # Add different proportions per column and mess up
+#' toddler_missing(df, add_missing = TRUE, prop = c(0.1, 0.3))
+#'
+#' # Keep numeric columns as numeric with -999
+#' toddler_missing(df_with_nas, extra_tricky = TRUE)
+
+toddler_missing <- function(data, cols = names(data), add_missing = TRUE,
+                            modify_missing = FALSE, prop = 0.05,
+                            replacement = c("n/a", "na", "NA", "N/A", "-999", "999", "missing"),
+                            random = TRUE, extra_tricky = FALSE, seed = NULL) {
 
     if (!is.null(seed)) set.seed(seed)
+
+    # Early return for empty data frames
+    if (nrow(data) == 0 || ncol(data) == 0) {
+        return(data)
+    }
 
     # Handle different types of column specification
     if (is.numeric(cols)) {
@@ -98,6 +136,20 @@ toddler_missing <- function(data, cols = names(data), prop = 0.1, seed = NULL) {
     # Ensure columns exist
     selected_cols <- intersect(selected_cols, names(data))
 
+    # Early return if no valid columns selected
+    if (length(selected_cols) == 0) {
+        if (modify_missing) {
+            warning("No valid columns selected for modification.")
+        }
+        return(data)
+    }
+
+    # Validate prop values
+    if (any(prop < 0) || any(prop > 1)) {
+        stop("All prop values must be between 0 and 1 (0% to 100%)")
+    }
+
+    # Handle proportion specification
     if (length(prop) == 1) {
         prop <- rep(prop, length(selected_cols))
     } else if (length(prop) != length(selected_cols)) {
@@ -105,11 +157,70 @@ toddler_missing <- function(data, cols = names(data), prop = 0.1, seed = NULL) {
     }
 
     result <- data
-    for (i in seq_along(selected_cols)) {
-        col_name <- selected_cols[i]
-        n_na <- round(nrow(data) * prop[i])
-        na_positions <- sample(nrow(data), n_na)
-        result[[col_name]][na_positions] <- NA
+
+    # Step (a): Add missing data based on proportions
+    if (add_missing) {
+        for (i in seq_along(selected_cols)) {
+            col_name <- selected_cols[i]
+            if (prop[i] > 0) {
+                n_na <- round(nrow(data) * prop[i])
+                # Only add NAs to non-missing values
+                non_na_positions <- which(!is.na(result[[col_name]]))
+                if (length(non_na_positions) >= n_na) {
+                    na_positions <- sample(non_na_positions, n_na)
+                    result[[col_name]][na_positions] <- NA
+                }
+            }
+        }
+    }
+
+    # Check for sufficient missing data after step (a) - only if we have data to check
+    if (modify_missing && length(selected_cols) > 0) {
+        # Safely calculate total NAs using vapply for type safety
+        total_nas <- sum(vapply(result[selected_cols], function(x) sum(is.na(x)), integer(1)))
+
+        if (total_nas == 0) {
+            warning("No missing values found in selected columns. Nothing to modify.")
+            return(result)
+        } else if (total_nas < 3) {
+            warning("Less than 3 missing values found across selected columns. Consider increasing prop values or adding missing data first.")
+        }
+    }
+
+    # Step (b): Replace all existing NAs with messy representations
+    if (modify_missing) {
+        for (col_name in selected_cols) {
+            if (col_name %in% names(result)) {
+                col_data <- result[[col_name]]
+                na_positions <- which(is.na(col_data))
+
+                if (length(na_positions) > 0) {
+                    # Handle extra_tricky for numeric columns
+                    if (extra_tricky && is.numeric(col_data)) {
+                        col_data[na_positions] <- -999
+                        result[[col_name]] <- col_data
+                    } else {
+                        # Convert to character for messy missing values
+                        col_data <- as.character(col_data)
+
+                        if (random && length(replacement) > 1) {
+                            # Randomly sample replacement values for each NA
+                            messy_values <- sample(replacement, length(na_positions), replace = TRUE)
+                        } else {
+                            # Use first replacement value for all NAs, handle empty replacement
+                            if (length(replacement) > 0) {
+                                messy_values <- rep(replacement[1], length(na_positions))
+                            } else {
+                                messy_values <- rep("", length(na_positions))
+                            }
+                        }
+
+                        col_data[na_positions] <- messy_values
+                        result[[col_name]] <- col_data
+                    }
+                }
+            }
+        }
     }
 
     result
@@ -493,7 +604,9 @@ toddler_units <- function(data, cols = NULL,
 #' (Note: Excel-style headers and totals removed to maintain R's rectangular data structure)
 #'
 #' @param data A data frame that's about to get some uninvited additions
-#' @param add_empty Add empty rows (strategic breathing room)
+#' @param add_random Logical. Add empty rows randomly scattered throughout the data (default FALSE)
+#' @param add_end Logical or numeric. If TRUE, adds 3-30 random empty rows at the end.
+#'   If numeric, adds that many empty rows at the end. (default FALSE)
 #' @param seed Random seed for reproducible "improvements"
 #'
 #' @return A data frame with bonus empty rows that nobody asked for
@@ -501,15 +614,18 @@ toddler_units <- function(data, cols = NULL,
 #'
 #' @examples
 #' df <- data.frame(name = c("Alice", "Bob"), score = c(85, 92))
-#' toddler_extra(df, add_empty = TRUE)
-toddler_extra <- function(data, add_empty = TRUE, seed = NULL) {
+#' toddler_extra(df, add_random = TRUE)        # Random empty rows scattered
+#' toddler_extra(df, add_end = TRUE)          # 3-30 empty rows at end
+#' toddler_extra(df, add_end = 5)             # Exactly 5 empty rows at end
+#' toddler_extra(df, add_random = TRUE, add_end = 10)  # Both types
+toddler_extra <- function(data, add_random = FALSE, add_end = FALSE, seed = NULL) {
 
     if (!is.null(seed)) set.seed(seed)
 
     result <- data
 
-    # Add empty rows randomly (the only sensible option for R's rectangular data)
-    if (add_empty && nrow(result) > 0) {
+    # Add empty rows randomly scattered throughout the data
+    if (add_random && nrow(result) > 0) {
         n_empty <- sample(1:3, 1)
         # Don't try to sample more positions than rows available
         max_positions <- min(n_empty, nrow(result))
@@ -528,6 +644,28 @@ toddler_extra <- function(data, add_empty = TRUE, seed = NULL) {
                 } else {
                     result <- rbind(result[1:pos, ], empty_row, result[(pos+1):nrow(result), ])
                 }
+            }
+        }
+    }
+
+    # Add empty rows at the end
+    if (add_end != FALSE) {
+        if (isTRUE(add_end)) {
+            # Add random number between 3 and 30
+            n_end_rows <- sample(3:30, 1)
+        } else if (is.numeric(add_end) && add_end > 0) {
+            # Add specific number
+            n_end_rows <- round(add_end)
+        } else {
+            n_end_rows <- 0
+        }
+
+        if (n_end_rows > 0 && ncol(result) > 0) {
+            # Create empty rows to add at end
+            for (i in 1:n_end_rows) {
+                empty_row <- result[1, ]
+                empty_row[1, ] <- NA
+                result <- rbind(result, empty_row)
             }
         }
     }

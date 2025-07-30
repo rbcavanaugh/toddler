@@ -80,9 +80,9 @@ test_that("toddler_extra adds bonus content", {
         age = c(25, 30)
     )
 
-    # Test adding empty rows only (simplified function)
+    # Test adding random empty rows
     set.seed(123)
-    extra_data <- toddler_extra(test_data, add_empty = TRUE, seed = 123)
+    extra_data <- toddler_extra(test_data, add_random = TRUE, seed = 123)
 
     expect_s3_class(extra_data, "data.frame")
     expect_gt(nrow(extra_data), nrow(test_data))
@@ -90,9 +90,24 @@ test_that("toddler_extra adds bonus content", {
     # Should have some NA rows
     expect_true(any(is.na(extra_data[, 1])))
 
-    # Test with no additions
-    no_extras <- toddler_extra(test_data, add_empty = FALSE)
+    # Test adding rows at end
+    end_data <- toddler_extra(test_data, add_end = 5)
+    expect_equal(nrow(end_data), nrow(test_data) + 5)
+
+    # Test both types
+    both_data <- toddler_extra(test_data, add_random = TRUE, add_end = 3, seed = 123)
+    expect_gt(nrow(both_data), nrow(test_data) + 3)  # Should have random + end rows
+
+    # Test with no additions (default behavior)
+    no_extras <- toddler_extra(test_data)
     expect_equal(no_extras, test_data)
+
+    # Test add_end = TRUE (random 3-30)
+    set.seed(456)
+    random_end <- toddler_extra(test_data, add_end = TRUE, seed = 456)
+    added_rows <- nrow(random_end) - nrow(test_data)
+    expect_gte(added_rows, 3)
+    expect_lte(added_rows, 30)
 })
 
 test_that("structural functions handle edge cases", {

@@ -7,7 +7,7 @@ test_that("toddler_missing adds NAs correctly", {
         z = runif(10)
     )
 
-    # Test basic functionality
+    # Test basic functionality (adding NAs)
     set.seed(123)
     missing_data <- toddler_missing(test_data, prop = 0.3, seed = 123)
 
@@ -46,6 +46,90 @@ test_that("toddler_missing adds NAs correctly", {
     # Test with proportion = 0
     no_missing <- toddler_missing(test_data, prop = 0)
     expect_equal(sum(is.na(no_missing)), 0)
+})
+
+test_that("toddler_missing modifies existing NAs correctly", {
+    # Test data with existing NAs
+    test_data_with_na <- data.frame(
+        x = c(1, 2, NA, 4, NA),
+        y = c("a", NA, "c", "d", NA),
+        z = c(1.1, 2.2, NA, 4.4, 5.5)
+    )
+
+    # Test modify_missing only (no new NAs)
+    set.seed(123)
+    modified_data <- toddler_missing(test_data_with_na, add_missing = FALSE,
+                                     modify_missing = TRUE, seed = 123)
+
+    expect_s3_class(modified_data, "data.frame")
+    expect_equal(nrow(modified_data), nrow(test_data_with_na))
+    expect_equal(ncol(modified_data), ncol(test_data_with_na))
+
+    # Should have no actual NAs anymore
+    expect_equal(sum(is.na(modified_data)), 0)
+
+    # Columns should be converted to character (except with extra_tricky)
+    expect_true(is.character(modified_data$x))
+    expect_true(is.character(modified_data$y))
+    expect_true(is.character(modified_data$z))
+
+    # Test extra_tricky option (keep numeric columns numeric)
+    set.seed(123)
+    tricky_data <- toddler_missing(test_data_with_na, add_missing = FALSE,
+                                   modify_missing = TRUE, extra_tricky = TRUE, seed = 123)
+
+    expect_true(is.numeric(tricky_data$x))  # Should stay numeric
+    expect_true(is.numeric(tricky_data$z))  # Should stay numeric
+    expect_true(is.character(tricky_data$y))  # Was character, gets messy values
+
+    # Numeric columns should have -999 instead of messy strings
+    expect_true(-999 %in% tricky_data$x)
+    expect_true(-999 %in% tricky_data$z)
+
+    # Test specific replacement value
+    specific_data <- toddler_missing(test_data_with_na, add_missing = FALSE,
+                                     modify_missing = TRUE, replacement = "MISSING",
+                                     random = FALSE, seed = 123)
+
+    # All former NAs should be "MISSING"
+    expect_true(all(specific_data$x %in% c("1", "2", "MISSING", "4")))
+    expect_true("MISSING" %in% specific_data$y)
+
+    # Test reproducibility
+    set.seed(456)
+    mod1 <- toddler_missing(test_data_with_na, add_missing = FALSE,
+                            modify_missing = TRUE, seed = 456)
+    set.seed(456)
+    mod2 <- toddler_missing(test_data_with_na, add_missing = FALSE,
+                            modify_missing = TRUE, seed = 456)
+    expect_equal(mod1, mod2)
+})
+
+test_that("toddler_missing can do both operations", {
+    test_data <- data.frame(
+        x = 1:5,
+        y = letters[1:5]
+    )
+
+    # Test both add_missing and modify_missing
+    set.seed(789)
+    both_operations <- toddler_missing(test_data, prop = 0.4, modify_missing = TRUE, seed = 789)
+
+    expect_s3_class(both_operations, "data.frame")
+    expect_equal(nrow(both_operations), nrow(test_data))
+
+    # Should have no NAs (they were added then modified)
+    expect_equal(sum(is.na(both_operations)), 0)
+
+    # Columns should be character due to messy missing values
+    expect_true(is.character(both_operations$x))
+    expect_true(is.character(both_operations$y))
+
+    # Should contain some messy missing value representations
+    all_values <- c(both_operations$x, both_operations$y)
+    messy_values <- c("n/a", "na", "NA", "N/A", "-999", "999", "missing")
+    has_messy <- any(all_values %in% messy_values)
+    expect_true(has_messy)
 })
 
 test_that("toddler_duplicate adds duplicate rows", {
@@ -200,10 +284,22 @@ test_that("data quality functions handle edge cases", {
     expect_s3_class(toddler_types(single_row), "data.frame")
     expect_s3_class(toddler_units(single_row), "data.frame")
 
+    # Test toddler_missing with data that has no NAs when modify_missing = TRUE
+    no_na_data <- data.frame(x = 1:5, y = letters[1:5])
+    expect_warning(
+        no_change <- toddler_missing(no_na_data, add_missing = FALSE, modify_missing = TRUE),
+        "No missing values found in selected columns"
+    )
+    expect_equal(no_change, no_na_data)  # Should be unchanged
+
     # Test with all NA data
     na_data <- data.frame(x = rep(NA, 5), y = rep(NA_character_, 5))
     expect_s3_class(toddler_missing(na_data), "data.frame")
     expect_s3_class(toddler_duplicate(na_data), "data.frame")
+
+    # Test toddler_missing modify on all-NA data
+    all_na_modified <- toddler_missing(na_data, add_missing = FALSE, modify_missing = TRUE)
+    expect_equal(sum(is.na(all_na_modified)), 0)  # Should have no NAs after modification
 
     # Test missing with non-existent columns
     test_data <- data.frame(x = 1:5)
@@ -215,4 +311,13 @@ test_that("data quality functions handle edge cases", {
     expect_s3_class(toddler_missing(test_data, prop = 1), "data.frame")
     expect_s3_class(toddler_duplicate(test_data, prop = 0), "data.frame")
     expect_s3_class(toddler_duplicate(test_data, prop = 2), "data.frame")
+
+    # Test toddler_missing with minimal NAs (should warn about < 3 missing values)
+    data_with_na <- data.frame(x = c(1, NA, 3))
+    expect_warning(
+        result_few_nas <- toddler_missing(data_with_na, add_missing = FALSE, modify_missing = TRUE),
+        "Less than 3 missing values found"
+    )
+    expect_s3_class(result_few_nas, "data.frame")
+    expect_equal(sum(is.na(result_few_nas)), 0)  # Should have no NAs after modification
 })

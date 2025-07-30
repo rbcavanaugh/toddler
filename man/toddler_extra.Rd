@@ -4,12 +4,15 @@
 \alias{toddler_extra}
 \title{Add extra rows like a toddler's "helpful" additions}
 \usage{
-toddler_extra(data, add_empty = TRUE, seed = NULL)
+toddler_extra(data, add_random = FALSE, add_end = FALSE, seed = NULL)
 }
 \arguments{
 \item{data}{A data frame that's about to get some uninvited additions}
 
-\item{add_empty}{Add empty rows (strategic breathing room)}
+\item{add_random}{Logical. Add empty rows randomly scattered throughout the data (default FALSE)}
+
+\item{add_end}{Logical or numeric. If TRUE, adds 3-30 random empty rows at the end.
+If numeric, adds that many empty rows at the end. (default FALSE)}
 
 \item{seed}{Random seed for reproducible "improvements"}
 }
@@ -23,5 +26,8 @@ adds empty rows that make about as much sense as a toddler's art project.
 }
 \examples{
 df <- data.frame(name = c("Alice", "Bob"), score = c(85, 92))
-toddler_extra(df, add_empty = TRUE)
+toddler_extra(df, add_random = TRUE)        # Random empty rows scattered
+toddler_extra(df, add_end = TRUE)          # 3-30 empty rows at end
+toddler_extra(df, add_end = 5)             # Exactly 5 empty rows at end
+toddler_extra(df, add_random = TRUE, add_end = 10)  # Both types
 }
