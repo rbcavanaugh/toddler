@@ -1,0 +1,28 @@
+Package: toddler
+Title: Base R Functions to Mess Up Clean Data for Teaching
+Version: 0.1.0
+Authors@R: 
+    person("Rob", "Cavanaugh", , email = "rcavanaugh1@mghihp.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: A collection of functions that introduce common data quality issues 
+    into clean datasets, designed for teaching data cleaning and validation. 
+    Like a toddler with a crayon, these functions will gleefully mess up your 
+    perfectly organized data in educationally valuable ways. Includes functions 
+    to add missing values, duplicate rows, inconsistent formatting, mixed data 
+    types, and structural problems that mirror real-world data challenges.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends: 
+    R (>= 4.1.0)
+Suggests: 
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+URL: https://github.com/yourusername/toddler
+BugReports: https://github.com/yourusername/toddler/issues
+Imports: 
+    stats
+Config/testthat/edition: 3
